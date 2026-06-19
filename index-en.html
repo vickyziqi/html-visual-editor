@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLEdit — Visual HTML Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg:      #f2ede7;
+  --surface: #ede7e0;
+  --panel:   #e7e0d8;
+  --border:  #d4ccc3;
+  --border2: #c8bfb5;
+  --text:    #4a443e;
+  --text2:   #8c8278;
+  --text3:   #b8b0a6;
+  --rose:    #b08070;
+  --sage:    #7a9482;
+  --sky:     #8099b0;
+  --shadow:  rgba(80,60,40,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  height: 50px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.logo { display: flex; align-items: center; gap: 8px; }
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--rose); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff; opacity: 0.85;
+}
+.logo-name { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+.logo-ver {
+  font-size: 10px; color: var(--text3);
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 1px 7px; border-radius: 20px;
+}
+.h-sep { width: 1px; height: 16px; background: var(--border2); }
+.h-hint { font-size: 12px; color: var(--text3); }
+.h-actions { margin-left: auto; display: flex; gap: 7px; }
+
+button {
+  height: 32px; padding: 0 13px;
+  border-radius: 7px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text2);
+  font-size: 12.5px; font-weight: 500; font-family: inherit;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.14s; white-space: nowrap;
+}
+button:hover { background: var(--panel); color: var(--text); }
+button:active { transform: scale(0.97); }
+.btn-primary { background: var(--rose); color: #fff; border-color: transparent; opacity: 0.88; }
+.btn-primary:hover { opacity: 1; color: #fff; background: var(--rose); }
+.btn-sage { background: rgba(122,148,130,0.12); color: var(--sage); border-color: rgba(122,148,130,0.3); }
+.btn-sage:hover { background: rgba(122,148,130,0.2); color: var(--sage); }
+.btn-file { position: relative; overflow: hidden; }
+.btn-file input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+.left-panel {
+  width: 290px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+.panel-label {
+  padding: 10px 14px 7px;
+  font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--text3);
+  border-bottom: 1px solid var(--border);
+}
+textarea {
+  flex: 1; background: transparent; color: var(--sky);
+  border: none; padding: 13px 14px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11.5px; line-height: 1.7; resize: none; outline: none;
+}
+textarea::placeholder { color: var(--text3); line-height: 2.2; }
+.panel-foot { padding: 10px 12px; border-top: 1px solid var(--border); }
+
+.right-panel { flex: 1; display: flex; flex-direction: column; background: #f8f4ef; }
+.preview-bar {
+  height: 38px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 14px; gap: 10px; flex-shrink: 0;
+}
+.win-dots { display: flex; gap: 5px; }
+.win-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--border2); }
+.win-dots span:nth-child(1) { background: #e8a89a; }
+.win-dots span:nth-child(2) { background: #e8d4a0; }
+.win-dots span:nth-child(3) { background: #a0c8a8; }
+.preview-addr {
+  flex: 1; height: 22px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 5px;
+  display: flex; align-items: center; padding: 0 9px;
+  font-size: 11px; color: var(--text3);
+}
+#preview-frame { flex: 1; border: none; background: white; }
+
+.statusbar {
+  height: 26px; background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 14px; gap: 7px; flex-shrink: 0;
+  font-size: 11.5px; color: var(--text3);
+}
+.statusbar .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); flex-shrink: 0; transition: background 0.2s; }
+.statusbar.ok { color: var(--sage); }
+.statusbar.ok .dot { background: var(--sage); }
+.statusbar.err { color: var(--rose); }
+.statusbar.err .dot { background: var(--rose); }
+
+#toolbar {
+  position: fixed; display: none;
+  background: rgba(242,237,231,0.97); backdrop-filter: blur(20px);
+  border: 1px solid var(--border2); border-radius: 10px;
+  padding: 5px 7px; gap: 3px; align-items: center;
+  box-shadow: 0 6px 28px var(--shadow), 0 1px 0 #fff inset;
+  z-index: 9999;
+}
+#toolbar.visible { display: flex; }
+.tb-btn {
+  height: 28px; min-width: 28px; padding: 0 7px;
+  background: transparent; color: var(--text2); border-radius: 6px;
+  font-size: 12.5px; font-weight: 500; font-family: inherit; border: none;
+  display: flex; align-items: center; justify-content: center; transition: all 0.1s;
+}
+.tb-btn:hover { background: var(--panel); color: var(--text); }
+.tb-btn.active { background: var(--rose); color: #fff; opacity: 0.9; }
+.tb-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; }
+.tb-input {
+  width: 44px; height: 26px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text); font-size: 11.5px; font-family: inherit;
+  padding: 0 5px; text-align: center; outline: none;
+}
+.tb-input:focus { border-color: var(--rose); }
+.tb-color { width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border2); padding: 2px; background: var(--panel); cursor: pointer; }
+.tb-lbl { font-size: 10.5px; color: var(--text3); padding: 0 1px; }
+
+#anim-panel {
+  position: fixed; display: none;
+  background: rgba(237,231,224,0.98); backdrop-filter: blur(24px);
+  border: 1px solid var(--border2); border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 40px var(--shadow), 0 1px 0 #fff inset;
+  z-index: 9998; width: 268px; flex-direction: column; gap: 12px;
+}
+#anim-panel.visible { display: flex; }
+.ap-head { display: flex; align-items: center; justify-content: space-between; }
+.ap-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--rose); }
+.ap-close { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 0; opacity: 0.6; transition: opacity 0.1s; }
+.ap-close:hover { opacity: 1; }
+.ap-section-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: -4px; }
+.ap-presets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+.ap-preset {
+  height: 34px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text2);
+  font-size: 11px; font-family: inherit; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 1px; transition: all 0.12s;
+}
+.ap-preset:hover { background: var(--panel); color: var(--text); border-color: var(--border2); }
+.ap-preset.active { background: var(--rose); color: #fff; border-color: transparent; opacity: 0.9; }
+.ap-preset .emoji { font-size: 14px; line-height: 1; }
+.ap-preset .name { font-size: 9.5px; color: inherit; opacity: 0.8; }
+.ap-divider { height: 1px; background: var(--border); }
+.ap-controls { display: flex; flex-direction: column; gap: 9px; }
+.ap-toggle-row { display: flex; gap: 5px; }
+.ap-toggle {
+  flex: 1; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text2); font-size: 11px; font-family: inherit; font-weight: 500;
+  cursor: pointer; text-align: center; transition: all 0.1s;
+}
+.ap-toggle:hover { background: var(--panel); color: var(--text); }
+.ap-toggle.active { background: var(--rose); border-color: transparent; color: #fff; opacity: 0.88; }
+.ap-row { display: flex; align-items: center; gap: 10px; }
+.ap-row label { font-size: 11.5px; color: var(--text2); width: 44px; flex-shrink: 0; }
+.ap-row input[type=range] { flex: 1; accent-color: var(--rose); height: 3px; cursor: pointer; }
+.ap-val { font-size: 11.5px; font-weight: 500; color: var(--text); width: 34px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+.toast {
+  position: fixed; bottom: 18px; right: 18px;
+  background: rgba(122,148,130,0.12); border: 1px solid rgba(122,148,130,0.35);
+  color: var(--sage); padding: 8px 16px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 500; font-family: inherit;
+  opacity: 0; transform: translateY(5px); transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none; z-index: 99999;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <span class="logo-name">HTMLEdit</span>
+    <span class="logo-ver">beta</span>
+  </div>
+  <div class="h-sep"></div>
+  <span class="h-hint">Paste HTML → Click to edit → Copy code</span>
+  <div class="h-actions">
+    <button class="btn-file">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 10 2.586L13.414 6A2 2 0 0 1 14 7.414V12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4z" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v4h4" stroke="currentColor" stroke-width="1.5"/></svg>
+      Open File
+      <input type="file" accept=".html,.htm" onchange="loadFile(this)">
+    </button>
+    <button class="btn-sage" onclick="loadDemo()">Load Demo</button>
+    <button class="btn-primary" onclick="copyHTML()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.5"/></svg>
+      Copy Code
+    </button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="panel-label">Source Code</div>
+    <textarea id="html-input" placeholder="Paste AI-generated HTML here…
+
+It auto-renders on paste.
+
+Click text → edit directly
+Click any element → add animation" spellcheck="false"></textarea>
+    <div class="panel-foot">
+      <button onclick="renderHTML()" style="width:100%">Render Preview</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="preview-bar">
+      <div class="win-dots"><span></span><span></span><span></span></div>
+      <div class="preview-addr">Click text to edit · Click any element to add animation</div>
+    </div>
+    <iframe id="preview-frame" sandbox="allow-scripts"></iframe>
+  </div>
+</div>
+
+<div class="statusbar" id="status"><span class="dot"></span>Waiting for input…</div>
+
+<div id="toolbar">
+  <button class="tb-btn" onclick="sendFmt('bold')"><b>B</b></button>
+  <button class="tb-btn" onclick="sendFmt('italic')"><i>I</i></button>
+  <button class="tb-btn" onclick="sendFmt('underline')"><u>U</u></button>
+  <div class="tb-sep"></div>
+  <span class="tb-lbl">Size</span>
+  <input class="tb-input" id="tb-size" type="number" min="8" max="120" placeholder="16" onchange="sendFmt('fontSize', this.value)">
+  <div class="tb-sep"></div>
+  <span class="tb-lbl">Color</span>
+  <input class="tb-color" id="tb-color" type="color" value="#333333" onchange="sendFmt('color', this.value)">
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="sendFmt('align','left')">≡</button>
+  <button class="tb-btn" onclick="sendFmt('align','center')">☰</button>
+  <button class="tb-btn" onclick="sendFmt('align','right')">≡</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="sendFmt('removeFormat')" style="font-size:10px;opacity:0.6">Clear</button>
+</div>
+
+<div id="anim-panel">
+  <div class="ap-head">
+    <span class="ap-title">✦ Animation</span>
+    <button class="ap-close" onclick="hideAnimPanel()">✕</button>
+  </div>
+  <div>
+    <div class="ap-section-label">Add Effect</div>
+    <div style="height:7px"></div>
+    <div class="ap-presets">
+      <button class="ap-preset" id="preset-fadeIn"  onclick="applyPreset('fadeIn')">  <span class="emoji">✨</span><span class="name">Fade In</span></button>
+      <button class="ap-preset" id="preset-slideUp" onclick="applyPreset('slideUp')"> <span class="emoji">⬆</span><span class="name">Rise Up</span></button>
+      <button class="ap-preset" id="preset-float"   onclick="applyPreset('float')">   <span class="emoji">🫧</span><span class="name">Float</span></button>
+      <button class="ap-preset" id="preset-pulse"   onclick="applyPreset('pulse')">   <span class="emoji">💓</span><span class="name">Pulse</span></button>
+      <button class="ap-preset" id="preset-shake"   onclick="applyPreset('shake')">   <span class="emoji">〰</span><span class="name">Shake</span></button>
+      <button class="ap-preset" id="preset-none"    onclick="applyPreset('none')">    <span class="emoji">✕</span><span class="name">Remove</span></button>
+    </div>
+  </div>
+  <div class="ap-divider"></div>
+  <div class="ap-controls">
+    <div class="ap-toggle-row">
+      <button class="ap-toggle active" id="ap-play"    onclick="animCmd('play')">▶ Play</button>
+      <button class="ap-toggle"        id="ap-pause"   onclick="animCmd('pause')">⏸ Pause</button>
+      <button class="ap-toggle"        id="ap-restart" onclick="animCmd('restart')">↺ Replay</button>
+    </div>
+    <div class="ap-row">
+      <label>Speed</label>
+      <input type="range" id="ap-speed" min="0.1" max="4" step="0.1" value="1" oninput="animProp('speed',this.value)">
+      <span class="ap-val" id="ap-speed-v">1×</span>
+    </div>
+    <div class="ap-row">
+      <label>Duration</label>
+      <input type="range" id="ap-dur" min="0.2" max="10" step="0.1" value="1" oninput="animProp('duration',this.value)">
+      <span class="ap-val" id="ap-dur-v">1s</span>
+    </div>
+    <div class="ap-row">
+      <label>Delay</label>
+      <input type="range" id="ap-delay" min="0" max="5" step="0.1" value="0" oninput="animProp('delay',this.value)">
+      <span class="ap-val" id="ap-delay-v">0s</span>
+    </div>
+    <div class="ap-toggle-row">
+      <button class="ap-toggle active" id="ap-loop-on"  onclick="animProp('loop','infinite')">∞ Loop</button>
+      <button class="ap-toggle"        id="ap-loop-off" onclick="animProp('loop','1')">Once</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ Copied</div>
+
+<script>
+const frame = document.getElementById('preview-frame')
+const toolbar = document.getElementById('toolbar')
+const animPanel = document.getElementById('anim-panel')
+const statusEl = document.getElementById('status')
+
+let currentHTML = ''
+let currentAnimId = null
+
+const KEYFRAMES = `
+<style id="__he_kf__">
+@keyframes __he_fadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes __he_slideUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+@keyframes __he_float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes __he_pulse   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+@keyframes __he_shake   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+</style>`
+
+const INJECT = `
+<script>
+(function(){
+  const INLINE=new Set(['SPAN','A','STRONG','EM','B','I','U','CODE','MARK','ABBR','S','SMALL','SUB','SUP'])
+  function isEditable(el){return el.children.length===0||[...el.childNodes].every(n=>n.nodeType===3||INLINE.has(n.nodeName))}
+  function makeEditable(){
+    document.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,td,th,figcaption,blockquote,dt,dd,button,a,label').forEach(el=>{
+      if(isEditable(el)&&el.innerText.trim()){
+        el.contentEditable='true';el.style.outline='none';el.dataset.editable='1'
+        el.addEventListener('mouseenter',()=>{if(!el.matches(':focus'))el.style.outline='2px solid rgba(176,128,112,0.35)'})
+        el.addEventListener('mouseleave',()=>{if(!el.matches(':focus'))el.style.outline=''})
+        el.addEventListener('focus',()=>el.style.outline='2px solid rgba(176,128,112,0.65)')
+        el.addEventListener('blur',()=>el.style.outline='')
+      }
+    })
+  }
+  document.addEventListener('mouseover',function(e){
+    const el=e.target
+    if(el===document.body||el===document.documentElement)return
+    if(!el.dataset.hoverBorder){
+      el.dataset.hoverBorder='1'
+      el.addEventListener('mouseenter',()=>{if(!el.dataset.editable)el.style.outline='1px dashed rgba(120,153,130,0.4)'})
+      el.addEventListener('mouseleave',()=>{if(!el.dataset.editable)el.style.outline=''})
+    }
+  })
+  function sendSelection(){
+    const sel=window.getSelection()
+    if(!sel||sel.rangeCount===0||sel.isCollapsed){window.parent.postMessage({type:'selectionClear'},'*');return}
+    const range=sel.getRangeAt(0),rect=range.getBoundingClientRect()
+    if(!rect.width&&!rect.height){window.parent.postMessage({type:'selectionClear'},'*');return}
+    const container=range.commonAncestorContainer,el=container.nodeType===3?container.parentElement:container
+    const c=window.getComputedStyle(el)
+    window.parent.postMessage({type:'selection',rect:{top:rect.top,left:rect.left,bottom:rect.bottom,width:rect.width,height:rect.height},styles:{fontSize:parseInt(c.fontSize),color:c.color}},'*')
+  }
+  document.addEventListener('selectionchange',sendSelection)
+  document.addEventListener('click',function(e){
+    const el=e.target
+    if(el===document.body||el===document.documentElement)return
+    const c=window.getComputedStyle(el)
+    const animName=c.animationName,hasAnim=animName&&animName!=='none'
+    if(!el.dataset.animId)el.dataset.animId='a'+Math.random().toString(36).slice(2,7)
+    const rect=el.getBoundingClientRect()
+    const rawDur=c.animationDuration.split(',')[0].trim()
+    const rawDelay=c.animationDelay.split(',')[0].trim()
+    const rawIter=c.animationIterationCount.split(',')[0].trim()
+    const activePreset=animName&&animName.startsWith('__he_')?animName.replace('__he_',''):null
+    window.parent.postMessage({type:'elementClick',animId:el.dataset.animId,rect:{top:rect.top,left:rect.left,bottom:rect.bottom,width:rect.width,height:rect.height},hasAnim:hasAnim||c.transitionDuration!=='0s',activePreset,anim:{duration:parseFloat(rawDur)||1,delay:parseFloat(rawDelay)||0,loop:rawIter||'infinite',paused:c.animationPlayState==='paused'}},'*')
+  },true)
+  window.addEventListener('message',function(e){
+    if(e.data.type==='format'){
+      const cmd=e.data.cmd,val=e.data.val
+      if(cmd==='bold')document.execCommand('bold',false,null)
+      else if(cmd==='italic')document.execCommand('italic',false,null)
+      else if(cmd==='underline')document.execCommand('underline',false,null)
+      else if(cmd==='fontSize'){const sel=window.getSelection();if(!sel||!sel.rangeCount)return;const range=sel.getRangeAt(0),span=document.createElement('span');span.style.fontSize=val+'px';try{range.surroundContents(span)}catch(err){const f=range.extractContents();span.appendChild(f);range.insertNode(span)}}
+      else if(cmd==='color')document.execCommand('foreColor',false,val)
+      else if(cmd==='align'){let container=window.getSelection()?.getRangeAt(0)?.commonAncestorContainer;if(!container)return;if(container.nodeType===3)container=container.parentElement;const block=container.closest('p,h1,h2,h3,h4,h5,h6,li,td,div,section');if(block)block.style.textAlign=val}
+      else if(cmd==='removeFormat')document.execCommand('removeFormat',false,null)
+    }
+    else if(e.data.type==='anim'){
+      const el=e.data.animId?document.querySelector('[data-anim-id="'+e.data.animId+'"]'):null
+      const targets=el?[el]:[...document.querySelectorAll('[data-anim-id]')]
+      if(!targets.length)return
+      targets.forEach(t=>{
+        const{cmd,val}=e.data
+        if(cmd==='pause')t.style.animationPlayState='paused'
+        else if(cmd==='play')t.style.animationPlayState='running'
+        else if(cmd==='restart'){t.style.animationPlayState='paused';const o=t.style.animation;t.style.animation='none';void t.offsetWidth;t.style.animation=o;t.style.animationPlayState='running'}
+        else if(cmd==='speed'){if(!t.dataset.baseDur)t.dataset.baseDur=parseFloat(window.getComputedStyle(t).animationDuration)||1;t.style.animationDuration=(t.dataset.baseDur/parseFloat(val))+'s'}
+        else if(cmd==='duration'){t.style.animationDuration=val+'s';t.dataset.baseDur=val}
+        else if(cmd==='delay')t.style.animationDelay=val+'s'
+        else if(cmd==='loop')t.style.animationIterationCount=val
+        else if(cmd==='setPreset'){if(val==='none'){t.style.animation=''}else{const dur=parseFloat(t.style.animationDuration)||1,delay=parseFloat(t.style.animationDelay)||0,iter=t.style.animationIterationCount||'infinite';t.style.animation='__he_'+val+' '+dur+'s ease '+delay+'s '+iter+' both';t.dataset.baseDur=dur}}
+      })
+    }
+    else if(e.data.type==='getHTML'){
+      document.querySelectorAll('[data-editable]').forEach(el=>{el.removeAttribute('contenteditable');el.removeAttribute('data-editable');el.style.outline=''})
+      window.parent.postMessage({type:'htmlResult',html:'<!DOCTYPE html>\n'+document.documentElement.outerHTML},'*')
+      setTimeout(makeEditable,50)
+    }
+  })
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',makeEditable)
+  else makeEditable()
+})()
+<\/script>`
+
+function renderHTML(html) {
+  const src = html || document.getElementById('html-input').value.trim()
+  if (!src) { setStatus('Please paste HTML code first', 'err'); return }
+  let injected = KEYFRAMES + '\n' + src
+  if (injected.includes('</body>')) injected = injected.replace('</body>', INJECT + '\n</body>')
+  else if (injected.includes('</html>')) injected = injected.replace('</html>', INJECT + '\n</html>')
+  else injected += '\n' + INJECT
+  currentHTML = src
+  frame.srcdoc = injected
+  hideToolbar(); hideAnimPanel()
+  setStatus('Rendered — click text to edit, click any element to add animation', 'ok')
+}
+
+function setStatus(msg, type) {
+  statusEl.className = 'statusbar' + (type ? ' ' + type : '')
+  statusEl.innerHTML = '<span class="dot"></span>' + msg
+}
+function sendFmt(cmd, val) { frame.contentWindow.postMessage({ type: 'format', cmd, val }, '*') }
+function hideToolbar() { toolbar.classList.remove('visible') }
+function positionToolbar(rect) {
+  const fr = frame.getBoundingClientRect()
+  let top = fr.top + rect.top - 46; if (top < 8) top = fr.top + rect.bottom + 8
+  let left = fr.left + rect.left + rect.width/2 - 180; left = Math.max(8, Math.min(left, window.innerWidth - 370))
+  toolbar.style.top = top + 'px'; toolbar.style.left = left + 'px'; toolbar.classList.add('visible')
+}
+function hideAnimPanel() { animPanel.classList.remove('visible'); currentAnimId = null; document.querySelectorAll('.ap-preset').forEach(b=>b.classList.remove('active')) }
+function positionAnimPanel(rect) {
+  const fr = frame.getBoundingClientRect()
+  let top = fr.top + rect.bottom + 10; if (top + 380 > window.innerHeight) top = fr.top + rect.top - 390; top = Math.max(8, top)
+  let left = fr.left + rect.left; left = Math.max(8, Math.min(left, window.innerWidth - 276))
+  animPanel.style.top = top + 'px'; animPanel.style.left = left + 'px'; animPanel.classList.add('visible')
+}
+function syncAnimControls(anim) {
+  document.getElementById('ap-speed').value = 1
+  document.getElementById('ap-dur').value = Math.min(anim.duration, 10)
+  document.getElementById('ap-delay').value = Math.min(anim.delay, 5)
+  document.getElementById('ap-speed-v').textContent = '1×'
+  document.getElementById('ap-dur-v').textContent = anim.duration.toFixed(1) + 's'
+  document.getElementById('ap-delay-v').textContent = anim.delay.toFixed(1) + 's'
+  const inf = anim.loop === 'infinite' || parseFloat(anim.loop) > 1
+  document.getElementById('ap-loop-on').classList.toggle('active', inf)
+  document.getElementById('ap-loop-off').classList.toggle('active', !inf)
+  document.getElementById('ap-play').classList.toggle('active', !anim.paused)
+  document.getElementById('ap-pause').classList.toggle('active', anim.paused)
+}
+function applyPreset(name) {
+  currentPreset = name
+  document.querySelectorAll('.ap-preset').forEach(b=>b.classList.remove('active'))
+  if (name !== 'none') document.getElementById('preset-' + name)?.classList.add('active')
+  frame.contentWindow.postMessage({ type: 'anim', animId: currentAnimId, cmd: 'setPreset', val: name }, '*')
+  if (name !== 'none') syncAnimControls({ duration: 1, delay: 0, loop: 'infinite', paused: false })
+}
+function animCmd(cmd) {
+  frame.contentWindow.postMessage({ type: 'anim', animId: currentAnimId, cmd }, '*')
+  document.getElementById('ap-play').classList.toggle('active', cmd === 'play' || cmd === 'restart')
+  document.getElementById('ap-pause').classList.toggle('active', cmd === 'pause')
+}
+function animProp(prop, val) {
+  frame.contentWindow.postMessage({ type: 'anim', animId: currentAnimId, cmd: prop, val }, '*')
+  if (prop === 'speed') document.getElementById('ap-speed-v').textContent = parseFloat(val).toFixed(1) + '×'
+  if (prop === 'duration') document.getElementById('ap-dur-v').textContent = parseFloat(val).toFixed(1) + 's'
+  if (prop === 'delay') document.getElementById('ap-delay-v').textContent = parseFloat(val).toFixed(1) + 's'
+  if (prop === 'loop') { document.getElementById('ap-loop-on').classList.toggle('active', val==='infinite'); document.getElementById('ap-loop-off').classList.toggle('active', val==='1') }
+}
+
+window.addEventListener('message', function(e) {
+  if (e.data.type === 'selection') {
+    positionToolbar(e.data.rect)
+    document.getElementById('tb-size').value = e.data.styles?.fontSize || ''
+    if (e.data.styles?.color) {
+      const m = e.data.styles.color.match(/\d+/g)
+      if (m?.length >= 3) document.getElementById('tb-color').value = '#' + m.slice(0,3).map(x=>parseInt(x).toString(16).padStart(2,'0')).join('')
+    }
+  }
+  else if (e.data.type === 'selectionClear') hideToolbar()
+  else if (e.data.type === 'elementClick') {
+    currentAnimId = e.data.animId
+    document.querySelectorAll('.ap-preset').forEach(b=>b.classList.remove('active'))
+    if (e.data.activePreset) document.getElementById('preset-' + e.data.activePreset)?.classList.add('active')
+    syncAnimControls(e.data.hasAnim ? e.data.anim : { duration: 1, delay: 0, loop: 'infinite', paused: false })
+    positionAnimPanel(e.data.rect)
+    setStatus('Choose an animation preset — apply instantly', 'ok')
+  }
+  else if (e.data.type === 'htmlResult') {
+    navigator.clipboard.writeText(e.data.html).then(() => showToast('✓ Code copied!')).catch(() => {
+      const ta = document.createElement('textarea'); ta.value = e.data.html
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy')
+      document.body.removeChild(ta); showToast('✓ Copied')
+    })
+  }
+})
+
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000) }
+function copyHTML() { if (!currentHTML) { setStatus('Nothing rendered yet', 'err'); return } frame.contentWindow.postMessage({ type: 'getHTML' }, '*') }
+function loadFile(input) {
+  const file = input.files[0]; if (!file) return
+  const reader = new FileReader()
+  reader.onload = e => { document.getElementById('html-input').value = e.target.result; renderHTML(e.target.result); setStatus('Loaded: ' + file.name, 'ok') }
+  reader.readAsText(file, 'UTF-8')
+}
+document.getElementById('html-input').addEventListener('paste', () => setTimeout(renderHTML, 60))
+document.addEventListener('click', e => { if (!toolbar.contains(e.target) && !frame.contains(e.target)) hideToolbar() })
+
+function loadDemo() {
+  const demo = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Launch</title>
+<style>
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse  { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(176,128,112,0.4)} 50%{transform:scale(1.03);box-shadow:0 0 0 10px rgba(176,128,112,0)} }
+  @keyframes float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Helvetica Neue',Arial,sans-serif; background:#f5ede4; min-height:100vh; color:#4a3f36; display:flex; flex-direction:column; }
+  .slide { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 80px; text-align:center; gap:24px; }
+  .tag { background:rgba(176,128,112,0.12); border:1px solid rgba(176,128,112,0.3); padding:6px 18px; border-radius:100px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#b08070; animation:fadeUp 0.7s ease both; }
+  h1 { font-size:52px; font-weight:700; line-height:1.1; color:#3a3028; letter-spacing:-0.03em; animation:fadeUp 0.7s 0.1s ease both; }
+  h1 span { color:#b08070; }
+  .sub { font-size:20px; color:#8c7a70; max-width:520px; line-height:1.6; animation:fadeUp 0.7s 0.2s ease both; }
+  .cards { display:flex; gap:18px; margin-top:12px; flex-wrap:wrap; justify-content:center; animation:fadeUp 0.7s 0.3s ease both; }
+  .card { background:#fff; border:1px solid rgba(176,128,112,0.18); border-radius:16px; padding:22px 24px; width:190px; text-align:left; box-shadow:0 2px 12px rgba(176,128,112,0.08); animation:float 4s ease-in-out infinite; }
+  .card:nth-child(2) { animation-delay:-1.3s; }
+  .card:nth-child(3) { animation-delay:-2.6s; }
+  .card .icon { font-size:26px; margin-bottom:10px; display:block; }
+  .card h3 { font-size:14px; font-weight:600; margin-bottom:5px; color:#3a3028; }
+  .card p  { font-size:12px; color:#8c7a70; line-height:1.5; }
+  .cta { display:flex; gap:12px; margin-top:8px; animation:fadeUp 0.7s 0.4s ease both; }
+  .btn { padding:12px 28px; border-radius:10px; font-size:15px; font-weight:600; border:none; cursor:pointer; }
+  .btn-main { background:#b08070; color:#fff; animation:pulse 2.5s ease-in-out infinite; }
+  .btn-sub  { background:rgba(176,128,112,0.1); color:#b08070; border:1px solid rgba(176,128,112,0.3); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <p class="tag">2026 Product Launch</p>
+  <h1>Edit HTML like<br><span>a PowerPoint</span></h1>
+  <p class="sub">AI generates beautiful web pages. This tool lets anyone edit them — no code required.</p>
+  <div class="cards">
+    <div class="card"><span class="icon">✏️</span><h3>Click to Edit</h3><p>Click any text and type directly — like a document editor</p></div>
+    <div class="card"><span class="icon">✨</span><h3>Add Animation</h3><p>Click any element to add fade, float, pulse effects instantly</p></div>
+    <div class="card"><span class="icon">📋</span><h3>Export Code</h3><p>Copy clean HTML code, deploy anywhere</p></div>
+  </div>
+  <div class="cta">
+    <button class="btn btn-main">Get Started</button>
+    <button class="btn btn-sub">View Examples</button>
+  </div>
+</div>
+</body>
+</html>`
+  document.getElementById('html-input').value = demo
+  renderHTML(demo)
+}
+</script>
+</body>
+</html>
