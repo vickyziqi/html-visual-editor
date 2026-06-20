@@ -452,6 +452,14 @@ textarea::placeholder { color: var(--text3); line-height: 2.2; }
       <input type="file" accept=".html,.htm" onchange="loadFile(this)">
     </button>
     <button class="btn-sage" onclick="loadDemo()">载入示例</button>
+    <button class="btn-file" onclick="downloadHTML()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0-3-3m3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 11v1.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      下载 HTML
+    </button>
+    <button class="btn-file" onclick="exportPDF()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h4M5 8h4M5 11h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 4l2 2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      导出 PDF
+    </button>
     <button class="btn-primary" onclick="copyHTML()">
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.5"/></svg>
       复制代码
@@ -742,7 +750,7 @@ const INJECT = `
         el.removeAttribute('data-hover-border')
         el.style.outline=el.style.outline.includes('dashed')?'':el.style.outline
       })
-      window.parent.postMessage({type:'htmlResult',html:'<!DOCTYPE html>\\n'+document.documentElement.outerHTML},'*')
+      window.parent.postMessage({type:'htmlResult',mode:e.data.mode||'copy',html:'<!DOCTYPE html>\\n'+document.documentElement.outerHTML},'*')
       setTimeout(makeEditable,50)
     }
   })
@@ -885,12 +893,30 @@ window.addEventListener('message', function(e) {
     setStatus('点击动效预设 → 立刻应用 · 拖滑块调整速度', 'ok')
   }
   else if (e.data.type === 'htmlResult') {
-    navigator.clipboard.writeText(e.data.html).then(() => showToast('✓ 代码已复制')).catch(() => {
-      const ta = document.createElement('textarea')
-      ta.value = e.data.html
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy')
-      document.body.removeChild(ta); showToast('✓ 已复制')
-    })
+    const mode = e.data.mode || 'copy'
+    if (mode === 'copy') {
+      navigator.clipboard.writeText(e.data.html).then(() => showToast('✓ 代码已复制')).catch(() => {
+        const ta = document.createElement('textarea')
+        ta.value = e.data.html
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy')
+        document.body.removeChild(ta); showToast('✓ 已复制')
+      })
+    } else if (mode === 'download') {
+      const blob = new Blob([e.data.html], { type: 'text/html' })
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+      a.download = 'edited.html'; a.click(); URL.revokeObjectURL(a.href)
+      showToast('✓ HTML 已下载！')
+    } else if (mode === 'pdf') {
+      const blob = new Blob([e.data.html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, '_blank')
+      if (win) {
+        win.onload = () => { setTimeout(() => { win.print(); URL.revokeObjectURL(url) }, 300) }
+      } else {
+        setStatus('请允许弹出窗口以导出 PDF', 'err')
+        URL.revokeObjectURL(url)
+      }
+    }
   }
 })
 
@@ -901,10 +927,9 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2000)
 }
 
-function copyHTML() {
-  if (!currentHTML) { setStatus('还没有渲染任何内容', 'err'); return }
-  frame.contentWindow.postMessage({ type: 'getHTML' }, '*')
-}
+function copyHTML() { if (!currentHTML) { setStatus('还没有渲染任何内容', 'err'); return } frame.contentWindow.postMessage({ type: 'getHTML', mode: 'copy' }, '*') }
+function downloadHTML() { if (!currentHTML) { setStatus('还没有渲染任何内容', 'err'); return } frame.contentWindow.postMessage({ type: 'getHTML', mode: 'download' }, '*') }
+function exportPDF() { if (!currentHTML) { setStatus('还没有渲染任何内容', 'err'); return } frame.contentWindow.postMessage({ type: 'getHTML', mode: 'pdf' }, '*') }
 
 function loadFile(input) {
   const file = input.files[0]; if (!file) return
