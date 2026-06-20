@@ -420,7 +420,7 @@ const INJECT = `
     }
     else if(e.data.type==='getHTML'){
       document.querySelectorAll('[data-editable]').forEach(el=>{el.removeAttribute('contenteditable');el.removeAttribute('data-editable');el.style.outline=''})
-      window.parent.postMessage({type:'htmlResult',html:'<!DOCTYPE html>\n'+document.documentElement.outerHTML},'*')
+      window.parent.postMessage({type:'htmlResult',html:'<!DOCTYPE html>\\n'+document.documentElement.outerHTML},'*')
       setTimeout(makeEditable,50)
     }
   })
