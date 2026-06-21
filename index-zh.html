@@ -914,14 +914,14 @@ window.addEventListener('message', function(e) {
     var h=Math.max(de.scrollHeight,bd.scrollHeight,de.offsetHeight,bd.offsetHeight);
     var s=document.createElement('style');
     s.textContent='@page{size:'+w+'px '+h+'px;margin:0}'
-      +'html,body{width:'+w+'px!important;height:'+h+'px!important;overflow:hidden!important;margin:0!important;padding:0!important}'
+      +'html,body{margin:0!important;padding:0!important}'
       +'*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
       +'a{color:inherit!important;text-decoration:none!important}';
     document.head.appendChild(s);
     window.print();
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(go,200)});
-  else setTimeout(go,200);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(go,500)});
+  else setTimeout(go,500);
 })()\x3c/script>`
       const html = e.data.html.includes('</body>')
         ? e.data.html.replace('</body>', printInject + '</body>')
