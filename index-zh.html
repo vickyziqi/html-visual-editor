@@ -907,31 +907,30 @@ window.addEventListener('message', function(e) {
       a.download = 'edited.html'; a.click(); URL.revokeObjectURL(a.href)
       showToast('✓ HTML 已下载！')
     } else if (mode === 'pdf') {
-      const printCSS = `<style id="__he_print__">
-@page { margin: 0; size: auto; }
-@media print {
-  *, *::before, *::after {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+      const printInject = `<script id="__he_pdf__">(function(){
+  function go(){
+    var de=document.documentElement,bd=document.body;
+    var w=Math.max(de.scrollWidth,bd.scrollWidth,de.offsetWidth,bd.offsetWidth);
+    var h=Math.max(de.scrollHeight,bd.scrollHeight,de.offsetHeight,bd.offsetHeight);
+    var s=document.createElement('style');
+    s.textContent='@page{size:'+w+'px '+h+'px;margin:0}'
+      +'html,body{width:'+w+'px!important;height:'+h+'px!important;overflow:hidden!important;margin:0!important;padding:0!important}'
+      +'*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+      +'a{color:inherit!important;text-decoration:none!important}';
+    document.head.appendChild(s);
+    window.print();
   }
-  html, body { margin: 0 !important; padding: 0 !important; }
-  img, video, canvas, svg { max-width: 100% !important; page-break-inside: avoid; }
-  h1,h2,h3,h4,h5,h6,p,li,td,th,blockquote { page-break-inside: avoid; orphans: 3; widows: 3; }
-  a { color: inherit !important; text-decoration: none !important; }
-}
-</style>`
-      const html = e.data.html.includes('</head>')
-        ? e.data.html.replace('</head>', printCSS + '</head>')
-        : e.data.html.replace('<body', printCSS + '<body')
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(go,200)});
+  else setTimeout(go,200);
+})()\x3c/script>`
+      const html = e.data.html.includes('</body>')
+        ? e.data.html.replace('</body>', printInject + '</body>')
+        : e.data.html + printInject
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       const win = window.open(url, '_blank')
-      if (win) {
-        win.onload = () => { setTimeout(() => { win.print(); URL.revokeObjectURL(url) }, 400) }
-      } else {
-        setStatus('请允许弹出窗口以导出 PDF', 'err')
-        URL.revokeObjectURL(url)
-      }
+      if (!win) { setStatus('请允许弹出窗口以导出 PDF', 'err'); URL.revokeObjectURL(url) }
+      else { setTimeout(() => URL.revokeObjectURL(url), 10000) }
     }
   }
 })
