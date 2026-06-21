@@ -534,11 +534,27 @@ window.addEventListener('message', function(e) {
       a.download = 'edited.html'; a.click(); URL.revokeObjectURL(a.href)
       showToast('✓ HTML downloaded!')
     } else if (mode === 'pdf') {
-      const blob = new Blob([e.data.html], { type: 'text/html' })
+      const printCSS = `<style id="__he_print__">
+@page { margin: 0; size: auto; }
+@media print {
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  html, body { margin: 0 !important; padding: 0 !important; }
+  img, video, canvas, svg { max-width: 100% !important; page-break-inside: avoid; }
+  h1,h2,h3,h4,h5,h6,p,li,td,th,blockquote { page-break-inside: avoid; orphans: 3; widows: 3; }
+  a { color: inherit !important; text-decoration: none !important; }
+}
+</style>`
+      const html = e.data.html.includes('</head>')
+        ? e.data.html.replace('</head>', printCSS + '</head>')
+        : e.data.html.replace('<body', printCSS + '<body')
+      const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       const win = window.open(url, '_blank')
       if (win) {
-        win.onload = () => { setTimeout(() => { win.print(); URL.revokeObjectURL(url) }, 300) }
+        win.onload = () => { setTimeout(() => { win.print(); URL.revokeObjectURL(url) }, 400) }
       } else {
         setStatus('Please allow popups to export PDF', 'err')
         URL.revokeObjectURL(url)
