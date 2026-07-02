@@ -208,6 +208,43 @@ textarea::placeholder { color: var(--text3); line-height: 2.2; }
   pointer-events: none; z-index: 99999;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 760px) {
+  body { height: 100dvh; }
+  header {
+    height: auto;
+    min-height: 50px;
+    padding: 9px 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .h-sep, .h-hint { display: none; }
+  .h-actions {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  button { height: 30px; padding: 0 10px; font-size: 12px; }
+  .main { flex-direction: column; min-height: 0; }
+  .left-panel {
+    width: 100%;
+    height: 34vh;
+    min-height: 180px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  textarea { font-size: 11px; }
+  .preview-bar { height: 34px; padding: 0 10px; }
+  .preview-addr { font-size: 10.5px; }
+  #toolbar {
+    max-width: calc(100vw - 16px);
+    flex-wrap: wrap;
+  }
+  #anim-panel {
+    width: min(268px, calc(100vw - 16px));
+  }
+}
 </style>
 </head>
 <body>
@@ -341,6 +378,7 @@ const statusEl = document.getElementById('status')
 
 let currentHTML = ''
 let currentAnimId = null
+let currentPreset = null
 
 const KEYFRAMES = `
 <style id="__he_kf__">
@@ -428,6 +466,11 @@ const INJECT = `
     }
     else if(e.data.type==='getHTML'){
       document.querySelectorAll('[data-editable]').forEach(el=>{el.removeAttribute('contenteditable');el.removeAttribute('data-editable');el.style.outline=''})
+      document.querySelectorAll('[data-hover-border],[data-anim-id]').forEach(el=>{
+        el.removeAttribute('data-hover-border')
+        el.removeAttribute('data-anim-id')
+        if(el.style.outline&&el.style.outline.includes('dashed'))el.style.outline=''
+      })
       window.parent.postMessage({type:'htmlResult',mode:e.data.mode||'copy',html:'<!DOCTYPE html>\\n'+document.documentElement.outerHTML},'*')
       setTimeout(makeEditable,50)
     }
