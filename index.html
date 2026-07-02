@@ -393,15 +393,23 @@ const INJECT = `
 <script>
 (function(){
   const INLINE=new Set(['SPAN','A','STRONG','EM','B','I','U','CODE','MARK','ABBR','S','SMALL','SUB','SUP'])
-  function isEditable(el){return el.children.length===0||[...el.childNodes].every(n=>n.nodeType===3||INLINE.has(n.nodeName))}
+  const EDITABLE_SELECTOR='p,h1,h2,h3,h4,h5,h6,li,td,th,figcaption,blockquote,dt,dd,button,a,label,div,span,strong,em,b,i,u,code,mark,abbr,s,small,sub,sup'
+  const SKIP_SELECTOR='script,style,noscript,svg,canvas,iframe,input,textarea,select,option'
+  let selectedElement=null
+  function isEditable(el){
+    if(el.closest(SKIP_SELECTOR)||el.parentElement?.closest('[data-editable]'))return false
+    if(!(el.textContent||'').trim())return false
+    return el.children.length===0||[...el.childNodes].every(n=>n.nodeType===3||INLINE.has(n.nodeName))
+  }
   function makeEditable(){
-    document.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,td,th,figcaption,blockquote,dt,dd,button,a,label').forEach(el=>{
-      if(isEditable(el)&&el.innerText.trim()){
+    document.querySelectorAll(EDITABLE_SELECTOR).forEach(el=>{
+      if(isEditable(el)){
         el.contentEditable='true';el.style.outline='none';el.dataset.editable='1'
         el.addEventListener('mouseenter',()=>{if(!el.matches(':focus'))el.style.outline='2px solid rgba(176,128,112,0.35)'})
         el.addEventListener('mouseleave',()=>{if(!el.matches(':focus'))el.style.outline=''})
         el.addEventListener('focus',()=>el.style.outline='2px solid rgba(176,128,112,0.65)')
         el.addEventListener('blur',()=>el.style.outline='')
+        if(el.matches('a,button'))el.addEventListener('click',e=>e.preventDefault(),true)
       }
     })
   }
@@ -427,6 +435,7 @@ const INJECT = `
   document.addEventListener('click',function(e){
     const el=e.target
     if(el===document.body||el===document.documentElement)return
+    selectedElement=el
     const c=window.getComputedStyle(el)
     const animName=c.animationName,hasAnim=animName&&animName!=='none'
     if(!el.dataset.animId)el.dataset.animId='a'+Math.random().toString(36).slice(2,7)
@@ -436,6 +445,15 @@ const INJECT = `
     const rawIter=c.animationIterationCount.split(',')[0].trim()
     const activePreset=animName&&animName.startsWith('__he_')?animName.replace('__he_',''):null
     window.parent.postMessage({type:'elementClick',animId:el.dataset.animId,rect:{top:rect.top,left:rect.left,bottom:rect.bottom,width:rect.width,height:rect.height},hasAnim:hasAnim||c.transitionDuration!=='0s',activePreset,anim:{duration:parseFloat(rawDur)||1,delay:parseFloat(rawDelay)||0,loop:rawIter||'infinite',paused:c.animationPlayState==='paused'}},'*')
+  },true)
+  document.addEventListener('keydown',function(e){
+    const active=document.activeElement
+    if((e.key==='Backspace'||e.key==='Delete')&&selectedElement&&!active?.closest('[contenteditable="true"]')){
+      e.preventDefault()
+      selectedElement.remove()
+      selectedElement=null
+      window.parent.postMessage({type:'elementDeleted'},'*')
+    }
   },true)
   window.addEventListener('message',function(e){
     if(e.data.type==='format'){
@@ -481,8 +499,8 @@ const INJECT = `
 <\/script>`
 
 function renderHTML(html) {
-  const src = html || document.getElementById('html-input').value.trim()
-  if (!src) { setStatus('Please paste HTML code first', 'err'); return }
+  const src = html ?? document.getElementById('html-input').value
+  if (!src.trim()) { currentHTML = ''; frame.srcdoc = ''; hideToolbar(); hideAnimPanel(); setStatus('Preview cleared', 'ok'); return }
   let injected = KEYFRAMES + '\n' + src
   if (injected.includes('</body>')) injected = injected.replace('</body>', INJECT + '\n</body>')
   else if (injected.includes('</html>')) injected = injected.replace('</html>', INJECT + '\n</html>')
